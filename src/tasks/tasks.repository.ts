@@ -4,6 +4,7 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { GetTasksFilterDto } from './dto/get-tasks-filter.dto';
 import { TaskStatus } from './task-status.enum';
 import { Task } from './task.entity';
+import { InternalServerErrorException, Logger } from '@nestjs/common';
 
 const TaskFilters = {
   status: (target, query) => {
@@ -19,6 +20,9 @@ const TaskFilters = {
 
 @EntityRepository(Task)
 export class TasksRepository extends Repository<Task> {
+  // the true value indicates the time spent will be logged within the log msg
+  private logger = new Logger('TasksRepository', { timestamp: true });
+
   async getTasks(filterDto: GetTasksFilterDto, user: User): Promise<Task[]> {
     const query = this.createQueryBuilder('task');
     query.where({ user });
@@ -26,8 +30,18 @@ export class TasksRepository extends Repository<Task> {
       const filterValue = filterDto[filterKey];
       TaskFilters[filterKey](filterValue, query);
     }
-    const tasks = await query.getMany();
-    return tasks;
+    try {
+      const tasks = await query.getMany();
+      return tasks;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get tasks for user "${
+          user.username
+        }". Filters: ${JSON.stringify(filterDto)}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException();
+    }
   }
 
   async createTask(createTaskDto: CreateTaskDto, user: User): Promise<Task> {
