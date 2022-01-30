@@ -11,7 +11,7 @@ const TaskFilters = {
   },
   search: (target, query) => {
     query.andWhere(
-      'LOWER(task.title) LIKE LOWER(:search) OR LOWER(task.description) LIKE LOWER(:search)',
+      '(LOWER(task.title) LIKE LOWER(:search) OR LOWER(task.description) LIKE LOWER(:search))',
       { search: `%${target}%` },
     );
   },
