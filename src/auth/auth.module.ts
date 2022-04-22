@@ -6,17 +6,22 @@ import { UsersRepository } from './users.repository';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './jwt.strategy';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      // secret is hardcoded here, but was suppose to be stored in a secure way
-      secret: 'topSecret51',
-      signOptions: {
-        // tokens will expire in 1 hour
-        expiresIn: 3600,
-      },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get('JWT_TOKEN'),
+        signOptions: {
+          // tokens will expire in 1 hour
+          expiresIn: 3600,
+        },
+      }),
     }),
     TypeOrmModule.forFeature([UsersRepository]),
   ],
